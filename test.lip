@@ -1,0 +1,3 @@
+; comment
+(define func [a b]
+  (sum a b))
