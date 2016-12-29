@@ -1,3 +1,5 @@
 ; comment
-(define func [a b]
-  (sum a b))
+(define 0Afunc [a b]
+  (pow (sum (sum a b)
+            1)
+       1.5))

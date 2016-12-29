@@ -19,9 +19,10 @@ class AST
 
   def to_s
     a = "<#{self.class} id=#{@id} parent=#{@parent&.id} children="
-    @children.each do |c|
+    @children[0...-1].each do |c|
       a += "\n" + "\t".ljust(depth+1, "\t") + c.to_s + " "
     end
+    a += "\n" + "\t".ljust(depth+1, "\t") + @children[-1].to_s  unless children.empty?
     a += ">"
   end
 
@@ -34,4 +35,22 @@ class AST
  end
 
 class ASTList < AST
+end
+
+class ASTNumeric < AST
+  attr_accessor :value
+
+  def initialize(value)
+    @value = value
+  end
+
+  def to_s
+    "<#{self.class.to_s} #{@value}"
+  end
+end
+
+class ASTInteger < ASTNumeric
+end
+
+class ASTFloat < ASTNumeric
 end

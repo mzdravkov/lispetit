@@ -7,7 +7,8 @@ class Parser
     @ast = AST.new
   end
 
-  TOKEN_CLASS = /[a-zA-Z0-9_-]/
+  TOKEN_CLASS = /[a-zA-Z0-9._+*\/-]/
+  NAME_CLASS = /\A(\+|-|\*|\/|([a-z][a-z_0-9-]*))\z/
 
   def parse(code)
     current_node = @ast
@@ -35,7 +36,7 @@ class Parser
 
       # end of token
       if !token.empty? && !ch.match(TOKEN_CLASS)
-        current_node.add_child token
+        current_node.add_child parse_token(token)
         token = ''
       end
 
@@ -70,5 +71,19 @@ class Parser
     end
 
     @ast
+  end
+
+  def parse_token(token)
+    if token.match /\A(0|[1-9]\d*)\z/ # if integer literal
+      ASTInteger.new token.to_i
+    elsif token.match /\A(0|[1-9]\d*).(0|[1-9]\d*)\z/ # if float literal
+      ASTFloat.new token.to_f
+    else
+      unless token.match NAME_CLASS
+        # TODO: create custom exception class that will hold the (file, line, column) info
+        throw Exception.new("#{token} cannot be used as a name")
+      end
+      token
+    end
   end
 end
