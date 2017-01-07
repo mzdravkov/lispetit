@@ -37,10 +37,12 @@ class AST
 class ASTList < AST
 end
 
-class ASTNumeric < AST
+# This is a parent class for different kind of AST leaves (e.g. Numeric values, Strings and Booleans)
+class ASTValue < AST
   attr_accessor :value
 
   def initialize(value)
+    super()
     @value = value
   end
 
@@ -49,8 +51,17 @@ class ASTNumeric < AST
   end
 end
 
+class ASTNumeric < ASTValue
+end
+
 class ASTInteger < ASTNumeric
 end
 
 class ASTFloat < ASTNumeric
+end
+
+class ASTBoolean < ASTValue
+end
+
+class ASTString < ASTValue
 end

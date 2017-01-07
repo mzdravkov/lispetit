@@ -1,6 +1,7 @@
 require 'trollop'
 
 require_relative 'parser.rb'
+require_relative 'errors.rb'
 
 p = Trollop::Parser.new do
   version "0.0.1"
@@ -30,6 +31,9 @@ if ARGV.length != 1
   exit
 end
 
-puts "Execute script..."
-parser = Parser.new
-puts parser.parse(File.read(ARGV.first))
+parser = Parser.new(file: File.new(ARGV.first))
+begin
+  puts parser.parse
+rescue Lispetit::SyntaxError => e
+  puts e.message
+end
