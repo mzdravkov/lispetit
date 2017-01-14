@@ -1,7 +1,5 @@
 ; comment
-(define func [a b]
-  (pow (+ (+ a b "test)
-            1)
-       2))
+(define func (fn (a b) (+ a b)))
 
-(func 1 2)
+(println (func 1 2))
+

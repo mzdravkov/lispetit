@@ -1,13 +1,16 @@
 class AST
   @@next_id = 0
 
-  attr_reader :children, :id
+  attr_reader :children, :id, :file, :line, :column
   attr_accessor :parent
 
-  def initialize
+  def initialize(file = nil, line = nil, column = nil)
     @id = @@next_id
     @@next_id += 1
     @children = []
+    @file = file
+    @line = line
+    @column = column
   end
 
   def add_child(child)
@@ -20,7 +23,7 @@ class AST
   def to_s
     a = "<#{self.class} id=#{@id} parent=#{@parent&.id} children="
     @children[0...-1].each do |c|
-      a += "\n" + "\t".ljust(depth+1, "\t") + c.to_s + " "
+      a += "\n" + "\t".ljust(depth+1, "\t") + c.to_s + "> "
     end
     a += "\n" + "\t".ljust(depth+1, "\t") + @children[-1].to_s  unless children.empty?
     a += ">"
@@ -41,8 +44,8 @@ end
 class ASTValue < AST
   attr_accessor :value
 
-  def initialize(value)
-    super()
+  def initialize(value, file = nil, line = nil, column = nil)
+    super(file, line, column)
     @value = value
   end
 
@@ -64,4 +67,7 @@ class ASTBoolean < ASTValue
 end
 
 class ASTString < ASTValue
+end
+
+class ASTName < ASTValue
 end

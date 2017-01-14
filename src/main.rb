@@ -2,6 +2,8 @@ require 'trollop'
 
 require_relative 'parser.rb'
 require_relative 'errors.rb'
+require_relative 'eval.rb'
+require_relative 'core.rb'
 
 p = Trollop::Parser.new do
   version "0.0.1"
@@ -33,7 +35,13 @@ end
 
 parser = Parser.new(file: File.new(ARGV.first))
 begin
-  puts parser.parse
+  ast = parser.parse
+  puts ast
+  env = Core.methods_hash
+  Eval.eval_sexpr(ast, env, parser.code)
 rescue Lispetit::SyntaxError => e
   puts e.message
+rescue Lispetit::RuntimeError => e
+  puts e.message
 end
+

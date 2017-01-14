@@ -1,35 +1,113 @@
 require_relative "core.rb"
 
 class Eval
-  def eval_sexpr(ast_node, scope)
-    # if ast_node.is_a? ASTList
-    #   return ast_node.map { |child| eval_sexpr child }.to_a
-    # end
+  class Function
+    attr_accessor :name, :parameters, :body, :env
 
-    if ast_node.is_a? ASTNumeric
-      ast_node.value
-    elsif ast_node.is_a? ASTBoolean
-      ast_node.value
-    elsif ast_node.is_a? ASTString
-      ast_node.value
-    elsif ast_node.is_a? ASTList
-      ast_node.map { |child| eval_sexpr child }.to_a
-    else
-      if ast_node.children.empty?
-        # Empty S-expr, just do nothing
-        return
-        # throw Exception.new "Can't have an empty S-expression"
-      end
-      function = ast_node.children.first
-      arguments = ast_node.children.drop(1).map { |arg| eval_sexpr(arg) }
-      eval_function(function, arguments)
+    def initialize(name, parameters, body, env, code)
+      @name = name
+      @parameters = parameters
+      @body = body
+      @env = env
+      @code = code
+    end
+
+    def to_s
+      "<Function #{@name}>"
+    end
+
+    def call(*arguments)
+      # join the paramaters and their actual values
+      args = Hash[@parameters.zip(arguments)]
+      # merge the def-env (the closure) with the call-env and the args
+      actual_env = @env.merge(yield).merge(args)
+
+      Eval.eval_sexpr(@body, actual_env, @code)
     end
   end
 
-  def eval_function(name, arguments, scope)
-    if Core.methods(false).include? name.to_sym
-      Core.send name, *arguments
+  def self.eval_sexpr(ast_node, env, code)
+    case ast_node
+    when ASTNumeric then ast_node.value
+    when ASTBoolean then ast_node.value
+    when ASTString then ast_node.value
+    when ASTName then env.fetch(ast_node.value)
+    when ASTList
+      # If empty S-expr, just do nothing
+      # TODO: maybe return an empty list?
+      return if ast_node.children.empty?
+
+      if ast_node.children[0].value == 'quote'
+        return ast_node.children.drop(1)
+      end
+
+      return handle_if(ast_node, env, code) if ast_node.children[0].value == 'if'
+
+      return handle_define(ast_node, env, code) if ast_node.children[0].value == 'define'
+
+      return handle_fn(ast_node, env, code) if ast_node.children[0].value == 'fn'
+
+      function = eval_sexpr(ast_node.children.first, env, code)
+      arguments = ast_node.children.drop(1).map { |arg| eval_sexpr(arg, env, code) }
+      # pass the environment as a block because I don't want to enforce methods in core
+      # to define an argument for the environment if they are not going to use it
+      function.call(*arguments) { env }
+    when AST
+      ast_node.children.each { |node| eval_sexpr node, env, code }
+    end
+  end
+
+  private
+
+  def self.handle_if(ast_node, env, code)
+    if ast_node.children.count != 3 && ast_node.children.count != 4
+      raise Lispetit::RuntimeError.new("if expression needs to have 2 or 3 arguments (test, consequence and an optional alternative)", ast_node.file, code, ast_node.line, ast_node.column)
+    end
+
+    _, test, consequence, alternative = ast_node.children
+
+    if eval_sexpr(test, env, code)
+      eval_sexpr(consequence, env, code)
     else
+      eval_sexpr(alternative, env, code)
+    end
+  end
+
+  def self.handle_define(ast_node, env, code)
+    if ast_node.children.count != 3
+      raise Lispetit::RuntimeError.new("define expression needs to have 2 arguments (define name value)", ast_node.file, code, ast_node.line, ast_node.column)
+    end
+
+    value = eval_sexpr(ast_node.children[2], env, code)
+    env.merge! ast_node.children[1].value => value
+    value
+  end
+
+  def self.handle_fn(ast_node, env, code)
+    if ast_node.children.count < 3 || ast_node.children.count > 4
+      raise Lispetit::RuntimeError.new("fn expects optional name, parameter list and body", ast_node.file, code, ast_node.line, ast_node.column)
+    end
+
+    if ast_node.children.count == 3
+      unless ast_node.children[1].is_a? ASTList
+        raise Lispetit::RuntimeError.new("The parameters for a fn should be a list", ast_node.file, code, ast_node.line, ast_node.column)
+      end
+
+      unless ast_node.children[1].children.all? { |param| param.is_a? ASTName }
+        raise Lispetit::RuntimeError.new("The parameters for a fn should be a list of names", ast_node.file, code, ast_node.line, ast_node.column)
+      end
+
+      Function.new nil, ast_node.children[2].children.drop(1).map(&:value), ast_node.children[2], env, code
+    else
+      unless ast_node.children[2].is_a? ASTList
+        raise Lispetit::RuntimeError.new("The parameters for a fn should be a list", ast_node.file, code, ast_node.line, ast_node.column)
+      end
+
+      unless ast_node.children[2].children.any? { |param| !param.is_a? ASTName }
+        raise Lispetit::RuntimeError.new("The parameters for a fn should be a list of names", ast_node.file, code, ast_node.line, ast_node.column)
+      end
+
+      Function.new ast_node.children[1].value, ast_node.children[2].children.drop(1).map(&:value), ast_node.children[2], env, code
     end
   end
 end

@@ -2,5 +2,5 @@
 # A sample Gemfile
 source "https://rubygems.org"
 
-gem 'rspec'
-gem 'trollop'
+gem 'rspec', '>= 3.5.0'
+gem 'trollop', '~> 2.1.2'

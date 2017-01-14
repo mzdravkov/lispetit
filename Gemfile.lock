@@ -21,8 +21,8 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  rspec
-  trollop
+  rspec (>= 3.5.0)
+  trollop (~> 2.1.2)
 
 BUNDLED WITH
    1.12.5

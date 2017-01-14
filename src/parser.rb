@@ -2,8 +2,17 @@ require_relative 'ast.rb'
 require_relative 'errors.rb'
 
 class Parser
-  def initialize(file: nil)
+  attr_reader :code
+
+  def initialize(file: nil, code: nil)
     @file = file
+    @code = code
+    if @code.nil?
+      if @file.nil?
+        throw Exception.new ("Can't create a parser without either given file or given code string")
+      end
+      @code = @file.read
+    end
     @line = 0
     @column = 0
     @ast = AST.new
@@ -12,14 +21,22 @@ class Parser
   TOKEN_CLASS = /[a-zA-Z0-9._+*\/-]/
   NAME_CLASS = /\A(\+|-|\*|\/|([a-z][a-z_0-9-]*))\z/
 
-  def parse(code = @file.read)
+  def parse
     current_node = @ast
     token = ''
+    token_start_pos = nil
     pos = -1
     loop do
       pos += 1
       break if pos >= code.length
       ch = code[pos]
+
+      # end of token
+      if !token.empty? && !ch.match(TOKEN_CLASS)
+        current_node.add_child parse_token(token, token_start_pos)
+        token = ''
+        token_start_pos = @column
+      end
 
       if ch == "\n"
         @line += 1
@@ -55,14 +72,8 @@ class Parser
         next
       end
 
-      # end of token
-      if !token.empty? && !ch.match(TOKEN_CLASS)
-        current_node.add_child parse_token(token, code)
-        token = ''
-      end
-
       if ch == '('
-        new_node = AST.new
+        new_node = ASTList.new(@file, @line, @column)
         current_node.add_child new_node
         current_node = new_node
         next
@@ -73,21 +84,22 @@ class Parser
         next
       end
 
-      # beginning of a list
-      if ch == '['
-        new_node = ASTList.new
-        current_node.add_child new_node
-        current_node = new_node
-        next
-      end
+      # # beginning of a list
+      # if ch == '['
+      #   new_node = ASTList.new
+      #   current_node.add_child new_node
+      #   current_node = new_node
+      #   next
+      # end
 
-      # end of a list
-      if ch == ']'
-        current_node = current_node.parent
-        next
-      end
+      # # end of a list
+      # if ch == ']'
+      #   current_node = current_node.parent
+      #   next
+      # end
 
       if ch.match TOKEN_CLASS
+        token_start_pos = @column if token.empty?
         token += ch
         next
       end
@@ -96,18 +108,18 @@ class Parser
     @ast
   end
 
-  def parse_token(token, code)
-    if token.match /\A(0|[1-9]\d*)\z/ # if integer literal
+  def parse_token(token, token_start_pos)
+    if token.match /\A(0|([1-9]\d*))\z/ # if integer literal
       ASTInteger.new token.to_i
-    elsif token.match /\A(0|[1-9]\d*).(0|[1-9]\d*)\z/ # if float literal
+    elsif token.match /\A(0|[1-9]\d*)\.(0|[1-9]\d*)\z/ # if float literal
       ASTFloat.new token.to_f
     elsif token == 'true' || token == 'false'
       ASTBoolean.new token == 'true'
     else
       unless token.match NAME_CLASS
-        raise Lispetit::SyntaxError.new("#{token} cannot be used as a name", @file, code, @line, @column)
+        raise Lispetit::SyntaxError.new("\"#{token}\" cannot be used as a name", @file, @code, @line, token_start_pos)
       end
-      token
+      ASTName.new token, @file, @line, token_start_pos
     end
   end
 
