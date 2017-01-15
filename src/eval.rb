@@ -31,7 +31,12 @@ class Eval
     when ASTNumeric then ast_node.value
     when ASTBoolean then ast_node.value
     when ASTString then ast_node.value
-    when ASTName then env.fetch(ast_node.value)
+    when ASTName
+      begin
+        env.fetch(ast_node.value)
+      rescue KeyError
+        raise Lispetit::RuntimeError.new("Unknown name '#{ast_node.value}'", ast_node.file, code, ast_node.line, ast_node.column)
+      end
     when ASTList
       # If empty S-expr, just do nothing
       # TODO: maybe return an empty list?
@@ -84,30 +89,23 @@ class Eval
   end
 
   def self.handle_fn(ast_node, env, code)
-    if ast_node.children.count < 3 || ast_node.children.count > 4
-      raise Lispetit::RuntimeError.new("fn expects optional name, parameter list and body", ast_node.file, code, ast_node.line, ast_node.column)
+    children = ast_node.children
+
+    if children.count != 3
+      raise Lispetit::RuntimeError.new("fn expects two arguments: a parameter list and a body",
+                                       ast_node.file, code, ast_node.line, ast_node.column)
     end
 
-    if ast_node.children.count == 3
-      unless ast_node.children[1].is_a? ASTList
-        raise Lispetit::RuntimeError.new("The parameters for a fn should be a list", ast_node.file, code, ast_node.line, ast_node.column)
-      end
-
-      unless ast_node.children[1].children.all? { |param| param.is_a? ASTName }
-        raise Lispetit::RuntimeError.new("The parameters for a fn should be a list of names", ast_node.file, code, ast_node.line, ast_node.column)
-      end
-
-      Function.new nil, ast_node.children[2].children.drop(1).map(&:value), ast_node.children[2], env, code
-    else
-      unless ast_node.children[2].is_a? ASTList
-        raise Lispetit::RuntimeError.new("The parameters for a fn should be a list", ast_node.file, code, ast_node.line, ast_node.column)
-      end
-
-      unless ast_node.children[2].children.any? { |param| !param.is_a? ASTName }
-        raise Lispetit::RuntimeError.new("The parameters for a fn should be a list of names", ast_node.file, code, ast_node.line, ast_node.column)
-      end
-
-      Function.new ast_node.children[1].value, ast_node.children[2].children.drop(1).map(&:value), ast_node.children[2], env, code
+    unless children[1].is_a? ASTList
+      raise Lispetit::RuntimeError.new("The parameters for a fn should be a list",
+                                       ast_node.file, code, ast_node.line, ast_node.column)
     end
+
+    unless children[1].children.all? { |param| param.is_a? ASTName }
+      raise Lispetit::RuntimeError.new("The parameters for a fn should be a list of names",
+                                       ast_node.file, code, ast_node.line, ast_node.column)
+    end
+
+    Function.new nil, children[2].children.drop(1).map(&:value), children[2], env, code
   end
 end

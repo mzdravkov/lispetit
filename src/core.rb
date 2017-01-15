@@ -16,14 +16,28 @@ module Core
     arguments.reduce(&:+)
   end
 
+  def -(*arguments)
+    validate_numerics :-, arguments
+
+    arguments.reduce(&:-)
+  end
+
   def *(*arguments)
     validate_numerics :*, arguments
 
     arguments.reduce(&:*)
   end
 
+  def /(*arguments)
+    validate_numerics :/, arguments
+
+    arguments.reduce(&:/)
+  end
+
   def methods_hash
-    Hash[instance_methods.map { |m| [m.to_s, method(m)] }]
+    hash = Hash[instance_methods.map { |m| [m.to_s, method(m)] }]
+    hash.delete 'methods_hash'
+    hash
   end
 
   private

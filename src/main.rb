@@ -4,6 +4,7 @@ require_relative 'parser.rb'
 require_relative 'errors.rb'
 require_relative 'eval.rb'
 require_relative 'core.rb'
+require_relative 'repl.rb'
 
 p = Trollop::Parser.new do
   version "0.0.1"
@@ -24,7 +25,8 @@ opts = Trollop::with_standard_exception_handling p do
 end
 
 if opts[:interactive]
-  puts "Start REPL..."
+  puts "Welcome to the lispetit REPL..."
+  REPL.new.run
   exit
 end
 
@@ -37,6 +39,7 @@ parser = Parser.new(file: File.new(ARGV.first))
 begin
   ast = parser.parse
   puts ast
+  puts ''
   env = Core.methods_hash
   Eval.eval_sexpr(ast, env, parser.code)
 rescue Lispetit::SyntaxError => e

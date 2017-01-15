@@ -14,7 +14,7 @@ class Parser
       @code = @file.read
     end
     @line = 0
-    @column = 0
+    @column = -1
     @ast = AST.new
   end
 
@@ -35,7 +35,6 @@ class Parser
       if !token.empty? && !ch.match(TOKEN_CLASS)
         current_node.add_child parse_token(token, token_start_pos)
         token = ''
-        token_start_pos = @column
       end
 
       if ch == "\n"
@@ -83,20 +82,6 @@ class Parser
         current_node = current_node.parent
         next
       end
-
-      # # beginning of a list
-      # if ch == '['
-      #   new_node = ASTList.new
-      #   current_node.add_child new_node
-      #   current_node = new_node
-      #   next
-      # end
-
-      # # end of a list
-      # if ch == ']'
-      #   current_node = current_node.parent
-      #   next
-      # end
 
       if ch.match TOKEN_CLASS
         token_start_pos = @column if token.empty?
