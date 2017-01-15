@@ -1,3 +1,5 @@
+require_relative 'types.rb'
+
 class AST
   @@next_id = 0
 
@@ -38,10 +40,19 @@ class AST
  end
 
 class ASTList < AST
+  def to_list
+    array = children.map do |child|
+      case child
+        when ASTName then child.to_name
+        when ASTList then child.to_list
+        else child
+      end
+    end
+    Lispetit::List.new array
+  end
 end
 
-# This is a parent class for different kind of AST leaves (e.g. Numeric values, Strings and Booleans)
-class ASTValue < AST
+class ASTName < AST
   attr_accessor :value
 
   def initialize(value, file = nil, line = nil, column = nil)
@@ -52,22 +63,8 @@ class ASTValue < AST
   def to_s
     "<#{self.class.to_s} #{@value}"
   end
-end
 
-class ASTNumeric < ASTValue
-end
-
-class ASTInteger < ASTNumeric
-end
-
-class ASTFloat < ASTNumeric
-end
-
-class ASTBoolean < ASTValue
-end
-
-class ASTString < ASTValue
-end
-
-class ASTName < ASTValue
+  def to_name
+    Lispetit::Name.new @value
+  end
 end

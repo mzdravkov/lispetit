@@ -67,7 +67,8 @@ class Parser
           @column += 1
           ch = code[pos += 1]
         end
-        current_node.add_child ASTString.new(string_content)
+        # current_node.add_child ASTString.new(string_content)
+        current_node.add_child string_content
         next
       end
 
@@ -95,11 +96,14 @@ class Parser
 
   def parse_token(token, token_start_pos)
     if token.match /\A(0|([1-9]\d*))\z/ # if integer literal
-      ASTInteger.new token.to_i
+      # ASTInteger.new token.to_i
+      token.to_i
     elsif token.match /\A(0|[1-9]\d*)\.(0|[1-9]\d*)\z/ # if float literal
-      ASTFloat.new token.to_f
+      # ASTFloat.new token.to_f
+      token.to_f
     elsif token == 'true' || token == 'false'
-      ASTBoolean.new token == 'true'
+      # ASTBoolean.new token == 'true'
+      token == 'true'
     else
       unless token.match NAME_CLASS
         raise Lispetit::SyntaxError.new("\"#{token}\" cannot be used as a name", @file, @code, @line, token_start_pos)
