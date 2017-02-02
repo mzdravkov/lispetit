@@ -16,8 +16,13 @@ class REPL
       begin
         if sexpr_balance(form) == 0
           ast = Parser.new(code: form).parse
-          result = Eval.eval_sexpr(ast.children.first, @env, form)
-          puts result
+          value = Eval.quote(ast.children.first)
+          begin
+            result = Eval.eval_sexpr(value, @env, form)
+          rescue StandardError => e
+            puts e.message
+          end
+          puts result.to_s
           form = ''
         end
       rescue Lispetit::SyntaxError, Lispetit::RuntimeError => e

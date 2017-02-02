@@ -18,8 +18,8 @@ class Parser
     @ast = AST.new
   end
 
-  TOKEN_CLASS = /[a-zA-Z0-9._+*\/-]/
-  NAME_CLASS = /\A(\+|-|\*|\/|([a-z][a-z_0-9-]*))\z/
+  TOKEN_CLASS = /[a-zA-Z0-9._+*\/\-?]/
+  NAME_CLASS = /\A(\+|-|\*|\/|([a-z][a-z_0-9-]*\??))\z/
 
   def parse
     current_node = @ast
@@ -95,10 +95,10 @@ class Parser
   end
 
   def parse_token(token, token_start_pos)
-    if token.match /\A(0|([1-9]\d*))\z/ # if integer literal
+    if token.match /\A-?(0|([1-9]\d*))\z/ # if integer literal
       # ASTInteger.new token.to_i
       token.to_i
-    elsif token.match /\A(0|[1-9]\d*)\.(0|[1-9]\d*)\z/ # if float literal
+    elsif token.match /\A-?(0|[1-9]\d*)\.(0|[1-9]\d*)\z/ # if float literal
       # ASTFloat.new token.to_f
       token.to_f
     elsif token == 'true' || token == 'false'

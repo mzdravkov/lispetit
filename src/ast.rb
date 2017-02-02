@@ -65,6 +65,6 @@ class ASTName < AST
   end
 
   def to_name
-    Lispetit::Name.new @value
+    Lispetit::Name.new @value, file = @file, line = @line, column = @column
   end
 end
