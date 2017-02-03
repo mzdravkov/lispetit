@@ -41,10 +41,12 @@ begin
   puts ast
   puts ''
   env = Core.methods_hash
+  lispetit_core = File.new(File.join(__dir__, 'core.lip'))
+  lispetit_core_parser = Parser.new(file: lispetit_core)
+  Eval.eval_sexpr(lispetit_core_parser.parse, env, lispetit_core_parser.code)
   Eval.eval_sexpr(ast, env, parser.code)
 rescue Lispetit::SyntaxError => e
   puts e.message
 rescue Lispetit::RuntimeError => e
   puts e.message
 end
-

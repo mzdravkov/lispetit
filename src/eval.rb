@@ -5,6 +5,11 @@ class Eval
     attr_accessor :name, :parameters, :body, :env
 
     def initialize(parameters, body, env, code)
+      if parameters.include? '&'
+        if parameters.reverse.take_while { |param| param == '&' }.count > 1
+          raise Lispetit::SyntaxError.new('Cannot have more than one parameter after the "&" symbol inside function\'s parameter list', nil, @code, nil, nil)
+        end
+      end
       @parameters = parameters
       @body = body
       @env = env
@@ -16,8 +21,21 @@ class Eval
     end
 
     def call(*arguments)
-      # join the paramaters and their actual values
-      args = Hash[@parameters.zip(arguments)]
+      args = nil
+      if @parameters.include? '&'
+        # find all parameters before the &
+        params_before = @parameters[0...-2]
+        # get the parameter name for the rest list
+        rest_parameter = @parameters.last
+        # merge parameters and their arguments (without the rest)
+        args = Hash[params_before.zip(arguments)]
+        # add the rest arguments
+        args[rest_parameter] = arguments.drop(params_before.count)
+      else
+        # join the paramaters and their actual values
+        args = Hash[@parameters.zip(arguments)]
+      end
+
       # merge the def-env (the closure) with the call-env and the args
       actual_env = @env.merge(yield).merge(args)
 
@@ -54,6 +72,8 @@ class Eval
 
       return handle_macro(ast_node, env, code) if ast_node[0].to_s == 'macro'
 
+      return handle_let(ast_node, env, code) if ast_node[0].to_s == 'let'
+
       # action can be either a function (or method if defined in Core) or a macro
       action = eval_sexpr(ast_node.first, env, code)
 
@@ -71,8 +91,11 @@ class Eval
       else
         #TODO: exception
       end
-    when AST # AST node is only the top level list of expressions; We just evaluate them in order
-      ast_node.children.each { |node| eval_sexpr node, env, code }
+    else
+      if ast_node.instance_of? AST
+        # AST node is only the top level list of expressions; We just evaluate them in order
+        ast_node.children.each { |node| eval_sexpr quote(node), env, code }
+      end
     end
   end
 
@@ -91,6 +114,7 @@ class Eval
       case value
       when ASTList then value.to_list
       when ASTName then value.to_name
+      # when AST then value.children.map { |c| quote(c) }
       else value
       end
     end
@@ -163,6 +187,20 @@ class Eval
       parameters = ast_node[1].map(&:to_s)
       body = ast_node[2]
       Macro.new parameters, body, env, code
+    end
+
+    #TODO fix this
+    def handle_let(ast_node, env, code)
+      normalized_arguments = ast_node[1].each_with_index.map do |x, i|
+        if i.even? then x.to_s else x end
+      end
+
+      definitions = Hash[*normalized_arguments]
+      local_env = env.clone
+      definitions.each_pair do |name, value|
+        local_env[name] = eval_sexpr(value, local_env, code)
+      end
+      eval_sexpr(ast_node[2], local_env, code)
     end
   end
 end

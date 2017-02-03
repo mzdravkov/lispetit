@@ -1,0 +1,29 @@
+(define string->list
+        (fn (str)
+            (call str "chars")))
+
+(define string-split
+        (fn (str spliter)
+            (call str "split" spliter)))
+
+(define string-join
+        (fn (strings separator)
+            (call strings "join" separator)))
+
+(define string-replace
+        (fn (string from to)
+            (call string "gsub" from to)))
+
+
+(define comp
+        (macro (& fs)
+               (fn (& args)
+                   (let (innermost (list (last fs)
+                                         args))
+                   (reduce (fn (composed f)
+                               (list f composed))
+                           innermost
+                           (drop 1 (reverse fs)))))))
+
+(define inc (fn (a) (+ a 1)))
+(define twice (fn (a) (* a 2)))

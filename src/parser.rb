@@ -18,8 +18,8 @@ class Parser
     @ast = AST.new
   end
 
-  TOKEN_CLASS = /[a-zA-Z0-9._+*\/\-?]/
-  NAME_CLASS = /\A(\+|-|\*|\/|([a-z][a-z_0-9-]*\??))\z/
+  TOKEN_CLASS = /[a-zA-Z0-9._+&*\/\-?<>=]/
+  NAME_CLASS = /\A(\+|-|\*|\/|&|<=?|>=?|([a-z][a-z_0-9*\/\<\>\=+-]*\??))\z/
 
   def parse
     current_node = @ast
@@ -104,6 +104,8 @@ class Parser
     elsif token == 'true' || token == 'false'
       # ASTBoolean.new token == 'true'
       token == 'true'
+    elsif token == 'nil'
+      token == nil
     else
       unless token.match NAME_CLASS
         raise Lispetit::SyntaxError.new("\"#{token}\" cannot be used as a name", @file, @code, @line, token_start_pos)

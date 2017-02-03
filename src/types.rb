@@ -9,7 +9,14 @@ module Lispetit
 
     def to_s
       str = "("
-      str += each { |elem| elem.to_s }.join(" ")
+      content = map do |e|
+        case e
+        when String then '"' + e + '"'
+        when NilClass then "nil"
+        else e
+        end
+      end
+      str += content.join(" ")
       str += ")"
     end
   end

@@ -52,6 +52,38 @@ module Core
     arguments.reduce(&:/)
   end
 
+  def >(*arguments)
+    arguments.reduce do |a, b|
+      return false unless a > b
+      b
+    end
+    true
+  end
+
+  def >=(*arguments)
+    arguments.reduce do |a, b|
+      return false unless a >= b
+      b
+    end
+    true
+  end
+
+  def <(*arguments)
+    arguments.reduce do |a, b|
+      return false unless a < b
+      b
+    end
+    true
+  end
+
+  def <=(*arguments)
+    arguments.reduce do |a, b|
+      return false unless a <= b
+      b
+    end
+    true
+  end
+
   def not(argument)
     return true if argument == false or argument == nil
     false
@@ -109,7 +141,9 @@ module Core
   end
 
   def call(object, method, *arguments)
-    object.public_send(method, *arguments)
+    result = object.public_send(method, *arguments)
+    return Lispetit::List.new(result) if result.is_a? Array
+    result
   end
 
   def len(coll)
@@ -127,6 +161,74 @@ module Core
 
   def contains?(coll, x)
     coll.include? x
+  end
+
+  def string?(argument)
+    argument.is_a? String
+  end
+
+  def trim(string)
+    string.strip
+  end
+
+  def empty?(coll)
+    coll.empty?
+  end
+
+  def nil?(argument)
+    argument.nil?
+  end
+
+  def first(list)
+    list.first
+  end
+
+  def rest(list)
+    Lispetit::List.new list.drop(1)
+  end
+
+  def drop(n, list)
+    Lispetit::List.new list.drop(n)
+  end
+
+  def take(n, list)
+    Lispetit::List.new list.take(n)
+  end
+
+  def last(list)
+    list.last
+  end
+
+  def reverse(coll)
+    coll.reverse
+  end
+
+  def concat(*colls)
+    colls.reduce(&:+)
+  end
+
+  def map(fn, *colls)
+    results = []
+    loop do
+      args = colls.reject(&:empty?).map { |coll| coll.delete_at 0 }
+      return Lispetit::List.new(results) if args.count < colls.count
+      env = yield
+      results << fn.call(*args) { env }
+    end
+  end
+
+  def filter(fn, coll)
+    env = yield
+    Lispetit::List.new coll.select { |elem| fn.call(elem) { env } }
+  end
+
+  def reduce(fn, initial = :unset, coll)
+    env = yield
+    if initial == :unset
+      coll.reduce { |aggregate, elem| fn.call(aggregate, elem) { env } }
+    else
+      coll.reduce(initial) { |aggregate, elem| fn.call(aggregate, elem) { env } }
+    end
   end
 
   def methods_hash
@@ -166,8 +268,9 @@ module Core
     end
   end
 
-  def validate_numerics!(function, *values)
+  def validate_numerics!(function, values)
     if values.any? { |arg| !arg.is_a? Numeric }
+      p values
       raise ArgumentError.new("Error: #{function} expects only numeric arguments")
     end
   end
