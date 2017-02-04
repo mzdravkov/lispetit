@@ -13,7 +13,7 @@ module Lispetit
         case e
         when String then '"' + e + '"'
         when NilClass then "nil"
-        else e
+        else e.to_s
         end
       end
       str += content.join(" ")

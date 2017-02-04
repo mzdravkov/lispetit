@@ -1,7 +1,29 @@
 require_relative 'types.rb'
+require_relative 'eval.rb'
 
 module Core
   extend Core
+
+  # def fn(*args)
+  #   if args.count != 2
+  #     raise Lispetit::RuntimeError.new("fn expects two arguments: a parameter list and a body",
+  #                                      ast_node[0].file, code, ast_node[0].line, ast_node[0].column)
+  #   end
+
+  #   unless args[0].is_a? Lispetit::List
+  #     raise Lispetit::RuntimeError.new("The parameters for a fn should be a list",
+  #                                      ast_node[0].file, code, ast_node[0].line, ast_node[0].column)
+  #   end
+
+  #   unless args[0].all? { |param| param.is_a? Lispetit::Name }
+  #     raise Lispetit::RuntimeError.new("The parameters for a fn should be a list of names",
+  #                                      ast_node[0].file, code, ast_node[0].line, ast_node[0].column)
+  #   end
+
+  #   parameters = ast_node[0].map(&:to_s)
+  #   body = ast_node[1]
+  #   Eval::Function.new parameters, body, env, code
+  # end
 
   def type(argument)
     argument.class
@@ -229,6 +251,10 @@ module Core
     else
       coll.reduce(initial) { |aggregate, elem| fn.call(aggregate, elem) { env } }
     end
+  end
+
+  def apply(fn, coll)
+    fn.call *coll
   end
 
   def methods_hash

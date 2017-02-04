@@ -17,13 +17,15 @@
 
 (define comp
         (macro (& fs)
-               (fn (& args)
-                   (let (innermost (list (last fs)
-                                         args))
-                   (reduce (fn (composed f)
-                               (list f composed))
-                           innermost
-                           (drop 1 (reverse fs)))))))
+               (list (quote fn)
+                     (list (quote &) (quote args))
+                     (let (innermost (list (quote apply)
+                                           (last fs)
+                                           (quote args)))
+                          (reduce (fn (composed f)
+                                      (list f composed))
+                                  innermost
+                                  (drop 1 (reverse fs)))))))
 
 (define inc (fn (a) (+ a 1)))
 (define twice (fn (a) (* a 2)))
