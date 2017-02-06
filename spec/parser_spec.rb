@@ -5,7 +5,7 @@ RSpec.describe Parser do
     context "integer literals" do
       it "recognizes integer literals" do
         parser = Parser.new code: '42'
-        expect(parser.parse_token('42', 0)).to be_an_instance_of(ASTInteger).and have_attributes(value: 42)
+        expect(parser.parse_token('42', 0)).to be_an(Integer).and eq(42)
       end
 
       it "doesn't accept integer with leading 0s" do
@@ -20,7 +20,7 @@ Message: "042" cannot be used as a name'''
     context "float literals" do
       it "recognizes float literals" do
         parser = Parser.new code: '42.3'
-        expect(parser.parse_token('42.3', 0)).to be_an_instance_of(ASTFloat).and have_attributes(value: 42.3)
+        expect(parser.parse_token('42.3', 0)).to be_a(Float).and eq(42.3)
       end
 
       it "doesn't accept floats with leading 0s" do
@@ -35,10 +35,10 @@ Message: "042.3" cannot be used as a name'''
     context "boolan literals" do
       it "recognizes boolean literals" do
         parser = Parser.new code: 'true'
-        expect(parser.parse_token('true', 0)).to be_an_instance_of(ASTBoolean).and have_attributes(value: true)
+        expect(parser.parse_token('true', 0)).to eq(true)
 
         parser = Parser.new code: 'false'
-        expect(parser.parse_token('false', 0)).to be_an_instance_of(ASTBoolean).and have_attributes(value: false)
+        expect(parser.parse_token('false', 0)).to eq(false)
       end
     end
 
@@ -86,7 +86,7 @@ Message: "0invalid" cannot be used as a name'''
       ast = parser.parse
       expect(ast).to be_an_instance_of(AST)
       expect(ast.children.count).to eq(1)
-      expect(ast.children.first).to be_an_instance_of(ASTInteger).and have_attributes(value: 42)
+      expect(ast.children.first).to be_an(Integer).and eq(42)
     end
 
     it "can parse S-expressions" do
@@ -120,7 +120,7 @@ Message: "0invalid" cannot be used as a name'''
       ast = parser.parse
       expect(ast).to be_an_instance_of(AST)
       expect(ast.children.count).to eq(1)
-      expect(ast.children.first).to be_an_instance_of(ASTString).and have_attributes(value: 'llama')
+      expect(ast.children.first).to be_a(String).and eq('llama')
     end
   end
 end
