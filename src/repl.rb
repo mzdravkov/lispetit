@@ -3,7 +3,7 @@ require 'readline'
 require_relative 'core.rb'
 require_relative 'eval.rb'
 
-
+# Instances of this method are lispetit REPL sessions
 class REPL
   def initialize
     @env = Core.methods_hash
@@ -25,7 +25,7 @@ class REPL
           result = Eval.eval_sexpr(value, @env, form)
           case result
           when String then result = '"' + result + '"'
-          when NilClass then result = "nil"
+          when NilClass then result = 'nil'
           end
           puts result.to_s
           form = ''
@@ -46,14 +46,15 @@ class REPL
     balance = 0
     line = 0
     column = 0
-    code.each_char.with_index do |c, i|
+    code.each_char do |c|
       case c
       when '(' then balance += 1
       when ')' then balance -= 1
       when "\n" then line += 1
       end
       if balance < 0
-        raise Lispetit::SyntaxError.new('Unexpected closing parenthesis', nil, code, line, column)
+        error_msg = 'Unexpected closing parenthesis'
+        raise Lispetit::SyntaxError.new(error_msg, nil, code, line, column)
       end
       column += 1
     end

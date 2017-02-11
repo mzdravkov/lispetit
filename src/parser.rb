@@ -1,6 +1,7 @@
 require_relative 'ast.rb'
 require_relative 'errors.rb'
 
+# A class that takes a file or a string with code and creates an AST out of it
 class Parser
   attr_reader :code
 
@@ -9,7 +10,8 @@ class Parser
     @code = code
     if @code.nil?
       if @file.nil?
-        throw Exception.new ("Can't create a parser without either given file or given code string")
+        message = 'Can\'t create a parser without given file or code string'
+        throw Exception.new message
       end
       @code = @file.read
     end
@@ -18,8 +20,8 @@ class Parser
     @ast = AST.new
   end
 
-  TOKEN_CLASS = /[a-zA-Z0-9._+&*\/\-?<>=]/
-  NAME_CLASS = /\A(\+|-|\*|\/|&|<=?|>=?|([a-z][a-z_0-9*\/\<\>\=+-]*\??))\z/
+  TOKEN_CLASS = %r{[a-zA-Z0-9._+&*/\-?<>=]}
+  NAME_CLASS = %r{\A(\+|-|\*|/|&|<=?|>=?|([a-z][a-z_0-9*/\<\>\=+-]*\??))\z}
 
   def parse
     current_node = @ast
@@ -47,7 +49,7 @@ class Parser
 
       # if comment
       if ch == ';'
-        ch = code[pos += 1] until ch.match /\n/
+        ch = code[pos += 1] until ch =~ /\n/
         @line += 1
         @column = 0
       end
@@ -59,9 +61,10 @@ class Parser
         @column += 1
         ch = code[pos += 1]
         until ch == '"'
-          if ch.match /\n/
-            message = "Reached the end of line without finding a closing quote"
-            raise Lispetit::SyntaxError.new message, @file, code, @line, open_quote_pos
+          if ch =~ /\n/
+            message = 'Reached the end of line without finding a closing quote'
+            raise Lispetit::SyntaxError.new message, @file, code,
+                                            @line, open_quote_pos
           end
           string_content << ch
           @column += 1
@@ -95,23 +98,19 @@ class Parser
   end
 
   def parse_token(token, token_start_pos)
-    if token.match /\A-?(0|([1-9]\d*))\z/ # if integer literal
-      # ASTInteger.new token.to_i
-      token.to_i
-    elsif token.match /\A-?(0|[1-9]\d*)\.(0|[1-9]\d*)\z/ # if float literal
-      # ASTFloat.new token.to_f
-      token.to_f
-    elsif token == 'true' || token == 'false'
-      # ASTBoolean.new token == 'true'
-      token == 'true'
-    elsif token == 'nil'
-      token == nil
+    integer_regex = /\A-?(0|([1-9]\d*))\z/
+    float_regex = /\A-?(0|[1-9]\d*)\.(0|[1-9]\d*)\z/
+    case token
+    when integer_regex then token.to_i
+    when float_regex then token.to_f
+    when 'true', 'false' then token == 'true'
+    when 'nil' then token.nil?
     else
-      unless token.match NAME_CLASS
-        raise Lispetit::SyntaxError.new("\"#{token}\" cannot be used as a name", @file, @code, @line, token_start_pos)
+      unless token =~ NAME_CLASS
+        raise Lispetit::SyntaxError.new("\"#{token}\" cannot be used as a name",
+                                        @file, @code, @line, token_start_pos)
       end
       ASTName.new token, @file, @line, token_start_pos
     end
   end
-
 end

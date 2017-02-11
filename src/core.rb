@@ -1,50 +1,34 @@
 require_relative 'types.rb'
 require_relative 'eval.rb'
 
+# Defines the core functions of the language
+# Note: Few of the most basic functions are handled by Eval directly
+# Note: There's also the file core.lip in the same directory. Some
+#       of the core functions are defined there in lispetit.
 module Core
   extend Core
-
-  # def fn(*args)
-  #   if args.count != 2
-  #     raise Lispetit::RuntimeError.new("fn expects two arguments: a parameter list and a body",
-  #                                      ast_node[0].file, code, ast_node[0].line, ast_node[0].column)
-  #   end
-
-  #   unless args[0].is_a? Lispetit::List
-  #     raise Lispetit::RuntimeError.new("The parameters for a fn should be a list",
-  #                                      ast_node[0].file, code, ast_node[0].line, ast_node[0].column)
-  #   end
-
-  #   unless args[0].all? { |param| param.is_a? Lispetit::Name }
-  #     raise Lispetit::RuntimeError.new("The parameters for a fn should be a list of names",
-  #                                      ast_node[0].file, code, ast_node[0].line, ast_node[0].column)
-  #   end
-
-  #   parameters = ast_node[0].map(&:to_s)
-  #   body = ast_node[1]
-  #   Eval::Function.new parameters, body, env, code
-  # end
+  include Lispetit
 
   def type(argument)
     argument.class
   end
 
   def print(*arguments)
-    Kernel.print *arguments
+    Kernel.print(*arguments)
   end
 
   def println(*arguments)
-    Kernel.print *arguments
+    Kernel.print(*arguments)
     puts "\n"
   end
 
   def list(*arguments)
-    Lispetit::List.new arguments
+    List.new arguments
   end
 
+  # TODO: finish with this method
   def macroexpand(argument)
-    if argument.is_a? Lispetit::List
-      
+    if argument.is_a? List
     else
       argument
     end
@@ -107,7 +91,7 @@ module Core
   end
 
   def not(argument)
-    return true if argument == false or argument == nil
+    return true if argument == false || argument.nil?
     false
   end
 
@@ -159,17 +143,17 @@ module Core
 
   def pow(base, degree)
     validate_numerics!(:pow, [base, degree])
-    base ** degree
+    base**degree
   end
 
   def call(object, method, *arguments)
     result = object.public_send(method, *arguments)
-    return Lispetit::List.new(result) if result.is_a? Array
+    return List.new(result) if result.is_a? Array
     result
   end
 
   def len(coll)
-    validate_type_is_one_of!(:len, coll, Lispetit::List, String)
+    validate_type_is_one_of!(:len, coll, List, String)
     coll.length
   end
 
@@ -206,15 +190,15 @@ module Core
   end
 
   def rest(list)
-    Lispetit::List.new list.drop(1)
+    List.new list.drop(1)
   end
 
   def drop(n, list)
-    Lispetit::List.new list.drop(n)
+    List.new list.drop(n)
   end
 
   def take(n, list)
-    Lispetit::List.new list.take(n)
+    List.new list.take(n)
   end
 
   def last(list)
@@ -233,7 +217,7 @@ module Core
     results = []
     loop do
       args = colls.reject(&:empty?).map { |coll| coll.delete_at 0 }
-      return Lispetit::List.new(results) if args.count < colls.count
+      return List.new(results) if args.count < colls.count
       env = yield
       results << fn.call(*args) { env }
     end
@@ -241,20 +225,29 @@ module Core
 
   def filter(fn, coll)
     env = yield
-    Lispetit::List.new coll.select { |elem| fn.call(elem) { env } }
+    List.new coll.select { |elem| fn.call(elem) { env } }
   end
 
-  def reduce(fn, initial = :unset, coll)
+  def reduce(fn, coll, initial = :unset)
     env = yield
     if initial == :unset
       coll.reduce { |aggregate, elem| fn.call(aggregate, elem) { env } }
     else
-      coll.reduce(initial) { |aggregate, elem| fn.call(aggregate, elem) { env } }
+      coll.reduce(initial) { |aggregate, e| fn.call(aggregate, e) { env } }
     end
   end
 
   def apply(fn, coll)
-    fn.call *coll
+    fn.call(*coll)
+  end
+
+  def repeat(times, value)
+    List.new Array.new(times, value)
+  end
+
+  def range(from, to, step = 1)
+    List.new (from..to).step(step).to_a
+
   end
 
   def methods_hash
@@ -269,35 +262,35 @@ module Core
     arguments.each_pair do |arg, expected_and_value|
       expected, value = expected_and_value
       if value.is_a? expected
-        p value.class
-        raise ArgumentError.new("Error: #{function} expects argument '#{arg}' to be #{printable_class(expected)}")
+        error_msg = "Error: #{function} expects argument "\
+                    "'#{arg}' to be #{printable_class(expected)}"
+        raise ArgumentError, error_msg
       end
     end
   end
 
   def validate_type_is_one_of!(function, argument, *types)
-    unless types.include?(argument.class)
-      printable_types = types.map { |type| printable_class(type) }
-      raise ArgumentError.new("Error: #{function} expects it's argument to be one of the following types: " + printable_types.join(', '))
-    end
+    return if types.include?(argument.class)
+    printable_types = types.map { |type| printable_class(type) }
+    error_msg = "Error: #{function} expects it's argument to be one "\
+                'of the following types: ' + printable_types.join(', ')
+    raise ArgumentError, error_msg
   end
 
-  def validate_count_more_than!(function, count, expected)
-    if count <= expected
-      raise ArgumentError.new("Error: #{function} expects at least #{count} arguments")
-    end
+  def validate_count_more_than!(func, count, expected)
+    return if count > expected
+    raise ArgumentError, "Error: #{func} expects at least #{count} arguments"
   end
 
   def validate_count!(function, count, expected)
-    if count != expected
-      raise ArgumentError.new("Error: #{function} expects #{count} arguments")
-    end
+    return if count == expected
+    raise ArgumentError, "Error: #{function} expects #{count} arguments"
   end
 
   def validate_numerics!(function, values)
     if values.any? { |arg| !arg.is_a? Numeric }
       p values
-      raise ArgumentError.new("Error: #{function} expects only numeric arguments")
+      raise ArgumentError, "Error: #{function} expects only numeric arguments"
     end
   end
 
