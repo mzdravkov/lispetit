@@ -6,7 +6,7 @@ require_relative 'eval.rb'
 require_relative 'core.rb'
 require_relative 'repl.rb'
 
-p = Trollop::Parser.new do
+trollop_parser = Trollop::Parser.new do
   version '0.0.1'
   banner <<-EOS
 lispetit is a small LISP language
@@ -19,9 +19,9 @@ EOS
   opt :interactive, 'start an interactive REPL session'
 end
 
-opts = Trollop.with_standard_exception_handling p do
+opts = Trollop.with_standard_exception_handling trollop_parser do
   raise Trollop::HelpNeeded if ARGV.empty? # show help screen
-  p.parse ARGV
+  trollop_parser.parse ARGV
 end
 
 if opts[:interactive]
